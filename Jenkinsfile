@@ -13,5 +13,9 @@ ecs_service_type_1_standard {
     external_config_repo    = "false"
     dependencies            = "ecr"
     internal_app            = "false"
+    vcpu_container             = "2048"
+    memory_container           = "4096"
+    vcpu_task                  = "2048"
+    memory_task                = "4096"
     additional_ssl_cert_domain_name = "*.kidsfirstdrc.org"
 }
