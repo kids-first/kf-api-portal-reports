@@ -66,3 +66,6 @@ typings/
 
 # folder used to keep notes in dev
 .ignore
+
+# Compiled typescript files
+dist

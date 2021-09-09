@@ -1,17 +1,15 @@
-FROM node:10-alpine
-
-# Create app directory
-WORKDIR /usr/src/app
-
-# Install app dependencies
-# A wildcard is used to ensure both package.json AND package-lock.json are copied
-# where available (npm@5+)
-COPY package*.json ./
-
-RUN npm install
-RUN npm ci --only=production
-
-# Bundle app source
+# First image to compile typescript to javascript
+FROM node:16.5.0-alpine AS build-image
+WORKDIR /app
 COPY . .
+RUN npm ci
+RUN npm run clean
+RUN npm run build
 
-CMD [ "node", "index.js" ]
+# Second image, that creates an image for production
+FROM node:16.5.0-alpine AS prod-image
+WORKDIR /app
+COPY --from=build-image ./app/dist ./dist
+COPY package* ./
+RUN npm ci --production
+CMD [ "node", "./dist/index.js" ]

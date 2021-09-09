@@ -3,7 +3,7 @@ version: 2.1
 executors:
   node-executor:
     docker:
-      - image: circleci/node:13
+      - image: circleci/node:16.4.2
     working_directory: ~/repo
 
 jobs:
@@ -19,8 +19,23 @@ jobs:
             - v1-dependencies-{{ checksum "package.json" }}
             - v1-dependencies-
 
-      - run: npm i
+      - run: npm ci
 
+      - save_cache:
+          paths:
+            - node_modules
+          key: v1-dependencies-{{ checksum "package.json" }}
+
+  build:
+    executor: node-executor
+
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "package.json" }}
+            - v1-dependencies-
+      - run: npm run build
       - save_cache:
           paths:
             - node_modules
@@ -52,6 +67,9 @@ workflows:
   tests:
     jobs:
       - install
+      - build:
+          requires:
+            - install
       - tests:
           requires:
             - install

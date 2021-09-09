@@ -1,7 +1,13 @@
+import { Client } from '@elastic/elasticsearch';
 import noop from 'lodash/noop';
 import defaults from 'lodash/defaults';
 import esToSafeJsInt from '@kfarranger/middleware/dist/utils/esToSafeJsInt';
 
+type SearchOpts = {
+  onPageFetched(data: object[], page: number): void;
+  onFinish(totalRaw: number):void;
+  pageSize: number;
+};
 /**
  * Recursively calls the `search` on the given elasticsearch.Client,
  *  using the `search_after` mechanism.
@@ -17,7 +23,7 @@ import esToSafeJsInt from '@kfarranger/middleware/dist/utils/esToSafeJsInt';
  *  The number of results per page may vary from that number.
  *  If a `size` property is provided in the query, it has precedence over this option.
  */
-export const executeSearchAfterQuery = async (es, index, query, opts = {}) => {
+export const executeSearchAfterQuery = async (es: Client, index: string, query, opts: SearchOpts) => {
   opts = defaults(opts, {
     onPageFetched: noop,
     onFinish: noop,
@@ -133,11 +139,8 @@ export const toSafeESValue = value => {
 /**
  * Get a transform function to convert from the given ES field type
  *  to a human readable value.
- * @param {string} fieldType - the ES type of the field.
- * @param {string} fieldName - the name of the ES field.
- * @returns {any} - a human-readable representation of the value.
  */
-export const getDefaultTransformPerType = (fieldType, fieldName) => {
+export const getDefaultTransformPerType = (fieldType: string, fieldName: string): any => {
   switch (fieldType) {
     case 'boolean':
       return defaultBoolTransform;
