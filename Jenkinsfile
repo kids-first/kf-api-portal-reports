@@ -3,7 +3,7 @@ ecs_service_type_1_standard {
     projectName             = "kf-api-portal-reports"
     orgFullName             = "kids-first"
     account                 = "kf-strides"
-    environments            = "dev,qa,prd"
+    environments            = "qa,prd"
     docker_image_type       = "alpine"
     create_default_iam_role = "1"
     entrypoint_command      = "node index.js"
