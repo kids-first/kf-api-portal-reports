@@ -47,7 +47,7 @@
     "@arranger/middleware": "2.16.1",
     "cors": "^2.8.5",
     "dotenv": "^8.1.0",
-    "excel4node": "^1.7.2",
+    "excel4node": "^1.8.0",
     "express": "^4.17.1",
     "keycloak-connect": "^14.0.0",
     "lodash": "^4.17.21",
