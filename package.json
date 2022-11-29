@@ -51,6 +51,6 @@
     "express": "^4.17.1",
     "keycloak-connect": "^14.0.0",
     "lodash": "^4.17.21",
-    "node-fetch": "^2.6.5"
+    "node-fetch": "^2.6.7"
   }
 }
