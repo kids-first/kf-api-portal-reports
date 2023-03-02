@@ -49,7 +49,7 @@
     "dotenv": "^8.1.0",
     "excel4node": "^1.7.2",
     "express": "^4.17.1",
-    "keycloak-connect": "^14.0.0",
+    "keycloak-connect": "^21.0.1",
     "lodash": "^4.17.21",
     "node-fetch": "^2.6.5"
   }
