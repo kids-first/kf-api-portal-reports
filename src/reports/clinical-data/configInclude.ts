@@ -19,6 +19,10 @@ const participants: SheetConfig = {
             field: 'outcomes.age_at_event_days.value',
             header: 'Age at the Last Vital Status (Days)',
         },
+        {
+            field: 'age_at_first_patient_engagement.value',
+            header: 'Age at First Patient Engagement (Days)',
+        },
     ],
     sort: [
         {
