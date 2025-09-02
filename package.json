@@ -59,7 +59,7 @@
     "express": "^4.19.2",
     "filesize": "^10.1.2",
     "jszip": "^3.10.1",
-    "keycloak-connect": "^24.0.3",
+    "keycloak-connect": "^26.1.1",
     "lodash": "^4.17.21"
   }
 }
