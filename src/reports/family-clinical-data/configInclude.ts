@@ -6,6 +6,7 @@ const participants: SheetConfig = {
     columns: [
         { field: 'participant_id', header: 'Participant ID' },
         { field: 'external_id', header: 'External Participant ID' },
+        { field: 'person.person_id', header: 'Person ID' },
         { field: 'families_id', header: 'Family ID' },
         { field: 'family_type', header: 'Family Unit' },
         {
@@ -113,12 +114,27 @@ const diagnoses: SheetConfig = {
     sort: [{ families_id: 'asc' }, { participant_id: 'asc' }],
 };
 
+const measurements: SheetConfig = {
+    sheetName: 'Measurements',
+    root: 'measurements',
+    columns: [
+        { field: 'participant_id', header: 'Participant ID' },
+        { field: 'external_id', header: 'External Participant ID' },
+        { field: 'measurements.measurement_type', header: 'Measurement Type' },
+        { field: 'measurements.formatted_term', header: 'Measurement (LOINC)' },
+        { field: 'measurements.quantity.value', header: 'Value' },
+        { field: 'measurements.quantity.unit', header: 'Unit' },
+        { field: 'measurements.effective_date_time.value', header: 'Age at Measurement (Days)' },
+    ],
+    sort: [{ participant_id: 'asc' }],
+};
+
 export const queryConfigs: QueryConfig = {
     indexName: 'participant',
     alias: 'participant_centric',
 };
 
-export const sheetConfigs: SheetConfig[] = [participants, phenotypes, diagnoses];
+export const sheetConfigs: SheetConfig[] = [participants, phenotypes, diagnoses, measurements];
 
 const reportConfig: ReportConfig = { queryConfigs, sheetConfigs };
 
