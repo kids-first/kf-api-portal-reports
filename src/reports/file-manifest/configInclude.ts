@@ -41,6 +41,7 @@ const config: SheetConfig = {
         { field: 'sequencing_experiment.experiment_strategy', header: 'Experimental Strategy' },
         { field: 'hashes.md5', header: 'Hash' },
         { field: 'study.study_name', header: 'Study Name' },
+        { field: 'dataset_names', header: 'Dataset' },
         { field: 'participants.participant_id', header: 'Participant ID' },
         {
             fieldExtraSuffix: '_sample_id',
