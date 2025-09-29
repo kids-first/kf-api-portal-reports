@@ -114,6 +114,9 @@ export const executeSearch = async (es, index, query) => {
     }
 };
 
+const isNumericValue = (value: number | string) =>
+    value === 0 || (['number', 'string'].some((x) => typeof value === x) && !!value && Number.isFinite(Number(value)));
+
 /**
  * Cleans a value so it can be accepted by ES.
  * e.g. Numbers below Number.MAX_SAFE_INTEGER have to be capped and represented in string, to avoid precision loss.
@@ -123,7 +126,7 @@ export const executeSearch = async (es, index, query) => {
  */
 export const toSafeESValue = (value) => {
     // Cap unsafe number
-    if (Number.isInteger(Number.parseFloat(value)) && !Number.isSafeInteger(value)) {
+    if (isNumericValue(value) && Number.isInteger(Number.parseFloat(value)) && !Number.isSafeInteger(value)) {
         const bigValue = BigInt(value);
         const bigMaxValue = BigInt(2 ** 63 - 1);
         const bigMinValue = BigInt(-(2 ** 63 - 1));
@@ -140,6 +143,8 @@ export const toSafeESValue = (value) => {
     return value;
 };
 
+const toIdentity = (x) => x;
+
 /**
  * Get a transform function to convert from the given ES field type
  *  to a human readable value.
@@ -152,16 +157,18 @@ export const getDefaultTransformPerType = (fieldType: string, fieldName: string)
         case 'keyword':
         case 'text':
             return (x) => (x === null ? '' : String(x));
-        case 'float':
         case 'integer':
         case 'long':
             return (x) => esToSafeJsInt(x);
+        case 'float':
+        case 'double':
+            return toIdentity;
         // case 'date':
         // case 'nested':
         // case 'object':
         default:
             console.warn(`Unsupported type "${fieldType}" encountered in field "${fieldName}"`);
-            return (x) => x;
+            return toIdentity;
     }
 };
 
