@@ -2,7 +2,7 @@ import { toSafeESValue } from './esUtils';
 
 describe('toSafeESValue', () => {
     it('returns the value unchanged if it is safe', () => {
-        const mockSafeValues = ['this string is safe', 123];
+        const mockSafeValues = ['this string is safe', 123, '044c1cc43f5fc075acb8449bf3e11204'];
         expect(mockSafeValues.map(toSafeESValue)).toEqual(mockSafeValues);
     });
 
