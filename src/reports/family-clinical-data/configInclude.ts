@@ -129,12 +129,23 @@ const measurements: SheetConfig = {
     sort: [{ participant_id: 'asc' }],
 };
 
+const interventions: SheetConfig = {
+    sheetName: 'Interventions',
+    root: 'maxo',
+    columns: [
+        { field: 'participant_id', header: 'Participant ID' },
+        { field: 'external_id', header: 'External Participant ID' },
+        { field: 'maxo.formatted', header: 'Intervention (MAxO)' },
+    ],
+    sort: [{ participant_id: 'asc' }],
+};
+
 export const queryConfigs: QueryConfig = {
     indexName: 'participant',
     alias: 'participant_centric',
 };
 
-export const sheetConfigs: SheetConfig[] = [participants, phenotypes, diagnoses, measurements];
+export const sheetConfigs: SheetConfig[] = [participants, phenotypes, diagnoses, measurements, interventions];
 
 const reportConfig: ReportConfig = { queryConfigs, sheetConfigs };
 
