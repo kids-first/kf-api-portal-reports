@@ -1,7 +1,8 @@
-import esToSafeJsInt from '@arranger/middleware/dist/utils/esToSafeJsInt';
 import { Client } from '@elastic/elasticsearch';
 import defaults from 'lodash/defaults';
 import noop from 'lodash/noop';
+
+import { esToSafeJsInt } from '../arranger/sqon';
 
 type SearchOpts = {
     onPageFetched(data: object[], page: number): void;

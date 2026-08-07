@@ -3,7 +3,7 @@ import { Dictionary, flattenDeep, get, isArray, zipObject } from 'lodash';
 import { Output as UserSetOutput, Sqon } from './setsTypes';
 import { getSharedSet, getUserSets } from './userClient';
 
-export const resolveSetsInSqon = async (sqon: Sqon, userId: string, accessToken: string): Promise<Sqon> => {
+export const resolveSetsInSqon = async (sqon: Sqon, accessToken: string): Promise<Sqon> => {
     const setIds: string[] = getSetIdsFromSqon(sqon || ({} as Sqon));
     if (setIds.length) {
         const userSets: UserSetOutput[] = await retrieveSetsFromUsers(accessToken, setIds);
@@ -41,7 +41,7 @@ const getSetIdsFromSqon = (sqon: Sqon, collection = []) =>
               sqon.content.reduce((acc, subSqon) => [...acc, ...getSetIdsFromSqon(subSqon, collection)], collection),
           )
         : isArray(sqon.content?.value)
-          ? sqon.content?.value.filter((value) => String(value).indexOf('set_id:') === 0)
+          ? sqon.content.value.filter((value) => String(value).indexOf('set_id:') === 0)
           : [...(String(sqon.content?.value).indexOf?.('set_id:') === 0 ? [sqon.content.value] : [])]
     ).map((setId) => setId.replace('set_id:', ''));
 

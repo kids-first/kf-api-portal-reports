@@ -8,17 +8,24 @@ import clinicalDataReport from './clinical-data';
 import familyClinicalDataReport from './family-clinical-data';
 import fileManifestReport from './file-manifest';
 import fileManifestStats from './file-manifest/fileManifestStats';
+import reportStatus from './reportStatus';
+import singleReportGuard from './singleReportGuard';
 
 export default () => {
     const router = express.Router();
 
-    // declare a route for each report
-    router.post('/clinical-data', tryCatchNext(clinicalDataReport));
-    router.post('/family-clinical-data', tryCatchNext(familyClinicalDataReport));
-    router.post('/biospecimen-data', tryCatchNext(biospecimenDataReport));
+    // Lets the FE poll whether this user already has a report generating.
+    router.get('/status', reportStatus);
+
+    // Heavy report generators: one in-flight per user (singleReportGuard -> 409 if busy).
+    router.post('/clinical-data', singleReportGuard, tryCatchNext(clinicalDataReport));
+    router.post('/family-clinical-data', singleReportGuard, tryCatchNext(familyClinicalDataReport));
+    router.post('/biospecimen-data', singleReportGuard, tryCatchNext(biospecimenDataReport));
+    router.post('/biospecimen-request', singleReportGuard, tryCatchNext(biospecimenRequest));
+    router.post('/file-manifest', singleReportGuard, tryCatchNext(fileManifestReport));
+
+    // Light stats endpoints: not guarded (cheap, and used to size a report before running it).
     router.post('/biospecimen-request/stats', tryCatchNext(biospecimenRequestStats));
-    router.post('/biospecimen-request', tryCatchNext(biospecimenRequest));
     router.post('/file-manifest/stats', tryCatchNext(fileManifestStats));
-    router.post('/file-manifest', tryCatchNext(fileManifestReport));
     return router;
 };

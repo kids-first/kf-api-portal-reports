@@ -9,19 +9,13 @@ import { UserApiError } from './userError';
 
 const SET_URI = `${USERS_API_URL}/user-sets`;
 
-export const createSet = async (
-    userId: string,
-    accessToken: string,
-    projectId: string,
-    sqon: Sqon,
-    biospecimenRequestName: string,
-): Promise<void> => {
+export const createSet = async (accessToken: string, sqon: Sqon, biospecimenRequestName: string): Promise<void> => {
     console.time('biospecimen request create set');
     const wantedFields = ['biospecimen_id'];
     const esClient = EsInstance.getInstance();
-    const ids = (
-        await getAvailableBiospecimensFromSqon(esClient, projectId, sqon, userId, accessToken, wantedFields)
-    ).map((b) => b.biospecimen_id);
+    const ids = (await getAvailableBiospecimensFromSqon(esClient, sqon, accessToken, wantedFields)).map(
+        (b) => b.biospecimen_id,
+    );
 
     const payload = {
         alias: biospecimenRequestName,
@@ -66,7 +60,7 @@ export const getUserSets = async (accessToken: string): Promise<Output[]> => {
     const body = await response.json();
 
     if (response.status === 200) {
-        return body;
+        return body as Output[];
     }
 
     throw new UserApiError(response.status, body);
@@ -86,7 +80,7 @@ export const getSharedSet = async (accessToken: string, setId: string): Promise<
     const body = await response.json();
 
     if (response.status === 200) {
-        return body;
+        return body as Output;
     }
 
     throw new UserApiError(response.status, body);

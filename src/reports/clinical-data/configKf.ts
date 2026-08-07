@@ -19,13 +19,7 @@ const participants: SheetConfig = {
         { field: 'outcomes.vital_status', header: 'Vital Status' },
         { field: 'outcomes.age_at_event_days.value', header: 'Age at Last Vital Status (Days)' },
     ],
-    sort: [
-        {
-            participant_id: {
-                order: 'asc',
-            },
-        },
-    ],
+    sort: [{ participant_id: 'asc' }],
 };
 
 const phenotypes: SheetConfig = {
@@ -46,7 +40,7 @@ const phenotypes: SheetConfig = {
                 row: { phenotype: { hpo_phenotype_observed: string; hpo_phenotype_not_observed: string } },
             ) => {
                 if (!row.phenotype) {
-                    return;
+                    return undefined;
                 }
                 return isObserved ? row.phenotype.hpo_phenotype_observed : row.phenotype.hpo_phenotype_not_observed;
             },
@@ -105,7 +99,6 @@ const familyRelationship: SheetConfig = {
 };
 
 export const queryConfigs: QueryConfig = {
-    indexName: 'participant',
     alias: 'participant_centric',
 };
 

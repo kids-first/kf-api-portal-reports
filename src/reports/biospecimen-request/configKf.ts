@@ -9,13 +9,7 @@ const contact: SheetConfig = {
         { field: 'study.biobank_contact', header: 'Biobank Contact' },
         { field: 'study.biobank_request_link', header: 'Request Weblink' },
     ],
-    sort: [
-        {
-            'study.study_code': {
-                order: 'asc',
-            },
-        },
-    ],
+    sort: [{ 'study.study_code': 'asc' }],
 };
 
 const generateStudyTab: (study_code: string) => SheetConfig = (study_code) =>
@@ -47,22 +41,10 @@ const generateStudyTab: (study_code: string) => SheetConfig = (study_code) =>
             { field: 'collection_ncit_anatomy_site', header: 'Anatomical Site (NCIT)' },
             { field: 'collection_anatomy_site', header: 'Anatomical Site (Source Text)' },
         ],
-        sort: [
-            {
-                'study.study_code': {
-                    order: 'asc',
-                },
-            },
-            {
-                biospecimen_id: {
-                    order: 'asc',
-                },
-            },
-        ],
+        sort: [{ 'study.study_code': 'asc' }, { biospecimen_id: 'asc' }],
     }) as SheetConfig;
 
 const queryConfigs: QueryConfig = {
-    indexName: 'biospecimen',
     alias: esBiospecimenIndex,
 };
 

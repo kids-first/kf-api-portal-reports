@@ -28,11 +28,6 @@ class ExtendedReportSheetConfigs {
     }
 
     // eslint-disable-next-line class-methods-use-this
-    get indexName(): string {
-        throw new Error('"indexName" has been moved');
-    }
-
-    // eslint-disable-next-line class-methods-use-this
     get alias(): string {
         throw new Error('"alias" has been moved');
     }

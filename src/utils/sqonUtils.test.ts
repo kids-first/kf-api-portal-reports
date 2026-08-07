@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 import { ProjectType } from '../reports/types';
-import { Output as UserSetOutput, Sqon } from './setsTypes';
-import { resolveSetsInSqon, retrieveSetsFromUsers } from './sqonUtils';
+import { Output as UserSetOutput } from './setsTypes';
+import { retrieveSetsFromUsers } from './sqonUtils';
 import { getSharedSet, getUserSets } from './userClient';
 
 jest.mock('./userClient');

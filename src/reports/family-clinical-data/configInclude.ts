@@ -40,23 +40,7 @@ const participants: SheetConfig = {
             header: 'Age at First Patient Engagement (Days)',
         },
     ],
-    sort: [
-        {
-            families_id: {
-                order: 'asc',
-            },
-        },
-        {
-            fhir_id: {
-                order: 'asc',
-            },
-        },
-        {
-            'diagnosis.age_at_event_days': {
-                order: 'desc',
-            },
-        },
-    ],
+    sort: [{ families_id: 'asc' }, { participant_id: 'asc' }],
 };
 
 const phenotypes: SheetConfig = {
@@ -75,7 +59,7 @@ const phenotypes: SheetConfig = {
                 row: { phenotype: { hpo_phenotype_not_observed: string } },
             ): undefined | string => {
                 if (!row.phenotype) {
-                    return;
+                    return undefined;
                 }
                 return value || row.phenotype.hpo_phenotype_not_observed;
             },
@@ -94,7 +78,7 @@ const phenotypes: SheetConfig = {
             header: 'Age at Phenotype Assignment (Days)',
         },
     ],
-    sort: [{ families_id: 'asc' }, { fhir_id: 'asc' }],
+    sort: [{ families_id: 'asc' }, { participant_id: 'asc' }],
 };
 
 const diagnoses: SheetConfig = {
@@ -104,7 +88,7 @@ const diagnoses: SheetConfig = {
         { field: 'participant_id', header: 'Participant ID' },
         { field: 'external_id', header: 'External Participant ID' },
         { field: 'families_id', header: 'Family ID' },
-        { field: 'diagnosis.mondo_display_term', header: ' Diagnosis (MONDO)' },
+        { field: 'diagnosis.mondo_display_term', header: 'Diagnosis (MONDO)' },
         { field: 'diagnosis.source_text', header: 'Condition (Source Text)' },
         {
             field: 'diagnosis.age_at_event_days',
@@ -126,7 +110,7 @@ const measurements: SheetConfig = {
         { field: 'measurements.quantity.unit', header: 'Unit' },
         { field: 'measurements.effective_date_time.value', header: 'Age at Measurement (Days)' },
     ],
-    sort: [{ participant_id: 'asc' }],
+    sort: [{ families_id: 'asc' }, { participant_id: 'asc' }],
 };
 
 const interventions: SheetConfig = {
@@ -137,11 +121,10 @@ const interventions: SheetConfig = {
         { field: 'external_id', header: 'External Participant ID' },
         { field: 'maxo.formatted', header: 'Intervention (MAxO)' },
     ],
-    sort: [{ participant_id: 'asc' }],
+    sort: [{ families_id: 'asc' }, { participant_id: 'asc' }],
 };
 
 export const queryConfigs: QueryConfig = {
-    indexName: 'participant',
     alias: 'participant_centric',
 };
 

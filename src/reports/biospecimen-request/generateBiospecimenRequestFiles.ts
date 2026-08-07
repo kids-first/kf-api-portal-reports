@@ -1,21 +1,20 @@
-import { buildQuery } from '@arranger/middleware';
 import { Client } from '@elastic/elasticsearch';
 import xl from 'excel4node';
 import noop from 'lodash/noop';
 
+import { getExtendedFromMapping } from '../../arranger/deriveExtendedFromMapping';
 import { ES_PAGESIZE } from '../../env';
-import { getExtendedConfigs, getNestedFields } from '../../utils/arrangerUtils';
 import { executeSearchAfterQuery } from '../../utils/esUtils';
 import ExtendedReportConfigs from '../../utils/extendedReportConfigs';
 import { Sqon } from '../../utils/setsTypes';
-import { resolveSetsInSqon } from '../../utils/sqonUtils';
-import { addCellByType, addHeaderCellByType } from '../generateReport';
 import { BioRequestConfig, SheetConfig } from '../types';
+import buildEsQueryFromSqon from '../utils/buildEsQuery';
+import { addCellByType, addHeaderCellByType } from '../utils/excel4nodeCells';
 import generateTxtFile from '../utils/generateTxtFile';
 import { addConditionAvailableInSqon } from '../utils/getAvailableBiospecimensFromSqon';
 
-// eslint-disable-next-line max-len
 const cbtn_instructions_mock =
+    // eslint-disable-next-line max-len
     'To request biospecimens from CBTN, please use the request form (https://airtable.com/apperYvVD82ti3021/pagdArwI0TxJQpiVW/form). General inquiries can be directed to research@cbtn.org.';
 
 /**
@@ -23,17 +22,15 @@ const cbtn_instructions_mock =
  */
 export default async function generateFiles(
     es: Client,
-    projectId: string,
     sqon: Sqon,
     pathFileXlsx: string,
     pathFileTxt: string,
     normalizedConfigs: ExtendedReportConfigs,
-    userId: string,
     accessToken: string,
     bioRequestConfig: BioRequestConfig,
 ): Promise<void> {
     const wb = new xl.Workbook();
-    const extendedConfig = await getExtendedConfigs(es, projectId, normalizedConfigs.indexName);
+    const extendedConfig = await getExtendedFromMapping(es, normalizedConfigs.alias);
     const workSheets = new Map<string, any>([]);
     const workSheetConfigs = new Map<string, SheetConfig>([]);
     const workSheetWrappers = new Map<string, any>([]);
@@ -48,7 +45,7 @@ export default async function generateFiles(
     workSheetConfigs.set(contact.sheetName, contact);
     workSheetWrappers.set(contact.sheetName, { rowIndex: 2 });
 
-    const searchParams = await makeReportQuery(extendedConfig, sqon, wantedFields, userId, accessToken);
+    const searchParams = await makeReportQuery(extendedConfig, sqon, wantedFields, accessToken);
 
     console.time(`biospecimen request search`);
     try {
@@ -111,17 +108,8 @@ export default async function generateFiles(
     });
 }
 
-const makeReportQuery = async (
-    extendedConfig: any,
-    sqon: Sqon,
-    wantedFields: string[],
-    userId: string,
-    accessToken: string,
-) => {
-    const nestedFields = getNestedFields(extendedConfig);
-    const newSqon = await resolveSetsInSqon(sqon, userId, accessToken);
-    const newSqonForAvailableOnly = addConditionAvailableInSqon(newSqon);
-    const query = buildQuery({ nestedFields, filters: newSqonForAvailableOnly });
+const makeReportQuery = async (extendedConfig: any, sqon: Sqon, wantedFields: string[], accessToken: string) => {
+    const query = await buildEsQueryFromSqon(extendedConfig, sqon, accessToken, addConditionAvailableInSqon);
 
     return {
         query,

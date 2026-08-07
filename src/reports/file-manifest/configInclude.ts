@@ -86,7 +86,7 @@ const config: SheetConfig = {
             transform: (participants) => processBiospecimens(participants, 'external_collection_sample_id'),
         },
     ],
-    sort: [{ file_id: { order: 'asc' } }],
+    sort: [{ file_id: 'asc' }],
 };
 
 export default config;

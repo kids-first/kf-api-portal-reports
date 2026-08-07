@@ -26,22 +26,10 @@ const biospecimens: SheetConfig = {
         { field: 'laboratory_procedure', header: 'Laboratory Procedure' },
         { field: 'biospecimen_storage', header: 'Biospecimen Storage' },
     ],
-    sort: [
-        {
-            sample_id: {
-                order: 'asc',
-            },
-        },
-        {
-            fhir_id: {
-                order: 'asc',
-            },
-        },
-    ],
+    sort: [{ sample_id: 'asc' }, { fhir_id: 'asc' }],
 };
 
 const queryConfigs: QueryConfig = {
-    indexName: 'biospecimen',
     alias: esBiospecimenIndex,
 };
 
