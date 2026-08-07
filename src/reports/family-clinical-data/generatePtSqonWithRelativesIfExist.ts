@@ -1,11 +1,10 @@
-import { buildQuery } from '@arranger/middleware';
 import { Client } from '@elastic/elasticsearch';
 
+import { getExtendedFromMapping } from '../../arranger/deriveExtendedFromMapping';
 import { ES_QUERY_MAX_SIZE } from '../../env';
-import { getExtendedConfigs, getNestedFields } from '../../utils/arrangerUtils';
 import { executeSearch } from '../../utils/esUtils';
 import { Sqon } from '../../utils/setsTypes';
-import { resolveSetsInSqon } from '../../utils/sqonUtils';
+import buildEsQueryFromSqon from '../utils/buildEsQuery';
 
 type Bucket = { key: string; count: number };
 type AggregationIdsRequest = {
@@ -40,30 +39,17 @@ export const mergeParticipantsWithoutDuplicates = (x: string[], y: string[]) => 
 
 // extract in a more general file when and if needed.
 export const xIsSubsetOfY = (x: string[], y: string[]) => x.every((e: string) => y.includes(e));
-/**
- * Generate a sqon from the family_id of all the participants in the given `sqon`.
- * @param {object} es - an `elasticsearch.Client` instance.
- * @param {string} projectId - the id of the arranger project.
- * @param {object} sqon - the sqon used to filter the results.
- * @param {object} normalizedConfigs - the normalized report configuration.
- * @param {string} userId - the user id.
- * @param {string} accessToken - the user access token.
- * @returns {object} - A sqon of all the `family_id`.
- */
+// Expand `sqon` to include every family member: returns a `participant_id in [...]`
+// sqon covering the selected participants plus all their relatives.
 const generatePtSqonWithRelativesIfExist = async (
     es: Client,
-    projectId: string,
     sqon: Sqon,
-    normalizedConfigs: { indexName: string; alias: string; [index: string]: any },
-    userId: string,
+    alias: string,
     accessToken: string,
 ): Promise<Sqon> => {
-    const extendedConfig = await getExtendedConfigs(es, projectId, normalizedConfigs.indexName);
-    const nestedFields = getNestedFields(extendedConfig);
-    const newSqon = await resolveSetsInSqon(sqon, userId, accessToken);
-
-    const query = buildQuery({ nestedFields, filters: newSqon });
-    const searchExecutor = async (q: object) => await executeSearch(es, normalizedConfigs.alias, q);
+    const extendedConfig = await getExtendedFromMapping(es, alias);
+    const query = await buildEsQueryFromSqon(extendedConfig, sqon, accessToken);
+    const searchExecutor = async (q: object) => await executeSearch(es, alias, q);
 
     const allSelectedParticipantsIds: string[] = await extractFieldAggregationIds(
         query,

@@ -2,40 +2,30 @@
 import { Request, Response } from 'express';
 
 import EsInstance from '../../ElasticSearchClientInstance';
-import { PROJECT } from '../../env';
 import { reportGenerationErrorHandler } from '../../errors';
-import { normalizeConfigs } from '../../utils/configUtils';
-import generateReport from '../generateReport';
-import { ProjectType } from '../types';
+import generateStreamingReport from '../utils/generateStreamingReport';
+import resolveProjectConfig from '../utils/resolveProjectConfig';
 import configInclude from './configInclude';
 import configKf from './configKf';
 
 const clinicalDataReport = async (req: Request, res: Response): Promise<void> => {
     console.time('clinical-data');
-    const { sqon, projectId, filename = null } = req.body;
-    const userId = req['kauth']?.grant?.access_token?.content?.sub;
+    const { sqon, filename = null } = req.body;
     const accessToken = req.headers.authorization;
 
-    const p = PROJECT.toLowerCase().trim();
-    let reportConfig;
-    if (p === ProjectType.include) {
-        reportConfig = configInclude;
-    } else if (p === ProjectType.kidsFirst) {
-        reportConfig = configKf;
-    } else {
-        console.warn('No reportConfig found.');
-    }
-
+    const reportConfig = resolveProjectConfig(configInclude, configKf);
     const esClient = EsInstance.getInstance();
 
     try {
-        // decorate the configs with default values, values from arranger's project, etc...
-        const normalizedConfigs = await normalizeConfigs(esClient, projectId, reportConfig);
-
-        // Generate the report
-        await generateReport(esClient, res, projectId, sqon, filename, normalizedConfigs, userId, accessToken);
+        // Streaming generator; normalizes configs from the index _mapping internally (no projectId).
+        await generateStreamingReport(esClient, res, sqon, filename, reportConfig, accessToken);
     } catch (err) {
-        reportGenerationErrorHandler(err);
+        // Only pre-stream failures reach here; mid-stream the generator aborts the socket itself.
+        if (res.headersSent) {
+            console.error('clinical-data report failed after streaming started', err);
+        } else {
+            reportGenerationErrorHandler(err);
+        }
     }
 
     console.timeEnd('clinical-data');

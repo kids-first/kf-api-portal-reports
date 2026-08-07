@@ -69,3 +69,11 @@ typings/
 
 # Compiled typescript files
 dist
+
+# Claude Code local settings
+.claude/
+
+# Benchmark scratch (payloads, outputs, results) — not part of any PR
+/bench/
+
+/post-arranger-to-delete

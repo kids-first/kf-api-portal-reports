@@ -25,18 +25,7 @@ const participants: SheetConfig = {
             header: 'Age at First Patient Engagement (Days)',
         },
     ],
-    sort: [
-        {
-            fhir_id: {
-                order: 'asc',
-            },
-        },
-        {
-            'diagnosis.age_at_event_days': {
-                order: 'desc',
-            },
-        },
-    ],
+    sort: [{ participant_id: 'asc' }],
 };
 
 const phenotypes: SheetConfig = {
@@ -54,7 +43,7 @@ const phenotypes: SheetConfig = {
                 row: { phenotype: { hpo_phenotype_not_observed: string } },
             ): undefined | string => {
                 if (!row.phenotype) {
-                    return;
+                    return undefined;
                 }
                 return value || row.phenotype.hpo_phenotype_not_observed;
             },
@@ -73,7 +62,7 @@ const phenotypes: SheetConfig = {
             header: 'Age at Phenotype Assignment (Days)',
         },
     ],
-    sort: [{ fhir_id: 'asc' }],
+    sort: [{ participant_id: 'asc' }],
 };
 
 const diagnoses: SheetConfig = {
@@ -82,14 +71,14 @@ const diagnoses: SheetConfig = {
     columns: [
         { field: 'participant_id', header: 'Participant ID' },
         { field: 'external_id', header: 'External Participant ID' },
-        { field: 'diagnosis.mondo_display_term', header: ' Diagnosis (MONDO)' },
+        { field: 'diagnosis.mondo_display_term', header: 'Diagnosis (MONDO)' },
         { field: 'diagnosis.source_text', header: 'Condition (Source Text)' },
         {
             field: 'diagnosis.age_at_event_days',
             header: 'Age at Diagnosis (Days)',
         },
     ],
-    sort: [{ fhir_id: 'asc' }],
+    sort: [{ participant_id: 'asc' }],
 };
 
 const familyRelationship: SheetConfig = {
@@ -141,7 +130,6 @@ const interventions: SheetConfig = {
 };
 
 export const queryConfigs: QueryConfig = {
-    indexName: 'participant',
     alias: 'participant_centric',
 };
 

@@ -35,17 +35,12 @@ const biospecimens: SheetConfig = {
         { field: 'dbgap_consent_code', header: 'dbGaP Consent Code' },
         { field: 'files.sequencing_experiment.sequencing_center_id', header: 'Sequencing Center ID' },
     ],
-    sort: [
-        {
-            'participant.participant_id': {
-                order: 'asc',
-            },
-        },
-    ],
+    // sample_id (official FHIR sample identifier, unique per biospecimen doc) is the tiebreaker:
+    // search_after needs a fully-deterministic sort or it can skip/duplicate rows at page boundaries.
+    sort: [{ 'participant.participant_id': 'asc' }, { sample_id: 'asc' }],
 };
 
 const queryConfigs: QueryConfig = {
-    indexName: 'biospecimen',
     alias: esBiospecimenIndex,
 };
 

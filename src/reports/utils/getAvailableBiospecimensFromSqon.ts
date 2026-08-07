@@ -1,37 +1,22 @@
-import { buildQuery } from '@arranger/middleware';
 import { Client } from '@elastic/elasticsearch';
 
+import { getExtendedFromMapping } from '../../arranger/deriveExtendedFromMapping';
 import { ES_QUERY_MAX_SIZE } from '../../env';
-import { getExtendedConfigs, getNestedFields } from '../../utils/arrangerUtils';
+import { esBiospecimenIndex } from '../../esVars';
 import { executeSearch } from '../../utils/esUtils';
 import { Sqon } from '../../utils/setsTypes';
-import { resolveSetsInSqon } from '../../utils/sqonUtils';
-import { esBiospecimenIndex } from '../../esVars';
+import buildEsQueryFromSqon from './buildEsQuery';
 
-/**
- * Retrieve all available biospecimen from a sqon of a list of biospecimen ids.
- * @param {object} es - an `elasticsearch.Client` instance.
- * @param {string} projectId - the id of the arranger project.
- * @param {object} sqon - the sqon used to filter the results.
- * @param {string} userId - the user id.
- * @param {string} accessToken - the user access token.
- * @param {string[]} fieldsWanted - the fields of the files to return.
- * @returns {object} - A sqon of all the `biospecimen ids`.
- */
+// Retrieve available biospecimen docs matching `sqon` (adds status=available), returning `_source` fields.
 const getAvailableBiospecimensFromSqon = async (
     es: Client,
-    projectId: string,
     sqon: Sqon,
-    userId: string,
     accessToken: string,
     fieldsWanted: string[],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<any[]> => {
-    const extendedConfig = await getExtendedConfigs(es, projectId, 'biospecimen');
-    const nestedFields = getNestedFields(extendedConfig);
-    const newSqon = await resolveSetsInSqon(sqon, userId, accessToken);
-    const newSqonForAvailableOnly = addConditionAvailableInSqon(newSqon);
-    const query = buildQuery({ nestedFields, filters: newSqonForAvailableOnly });
+    const extendedConfig = await getExtendedFromMapping(es, esBiospecimenIndex);
+    const query = await buildEsQueryFromSqon(extendedConfig, sqon, accessToken, addConditionAvailableInSqon);
     const results = await executeSearch(es, esBiospecimenIndex, {
         query,
         size: ES_QUERY_MAX_SIZE,

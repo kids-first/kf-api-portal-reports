@@ -1,5 +1,4 @@
 export type QueryConfig = {
-    indexName: string;
     alias: string;
 };
 

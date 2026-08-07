@@ -16,8 +16,7 @@ interface IBiospecimenDataByStudy {
 const biospecimenRequestStats = async (req: Request, res: Response): Promise<void> => {
     console.time('biospecimenRequestStats');
 
-    const { sqon, projectId } = req.body;
-    const userId = req['kauth']?.grant?.access_token?.content?.sub;
+    const { sqon } = req.body;
     const accessToken = req.headers.authorization;
 
     const wantedFields = ['sample_id', 'study.study_code', 'study.study_name', 'participant_fhir_id', 'container_id'];
@@ -25,14 +24,7 @@ const biospecimenRequestStats = async (req: Request, res: Response): Promise<voi
     const esClient = EsInstance.getInstance();
 
     try {
-        const availableBiospecimens = await getAvailableBiospecimensFromSqon(
-            esClient,
-            projectId,
-            sqon,
-            userId,
-            accessToken,
-            wantedFields,
-        );
+        const availableBiospecimens = await getAvailableBiospecimensFromSqon(esClient, sqon, accessToken, wantedFields);
 
         /** Join available biospecimens by study_code */
         const biospecimenDatasByStudy: IBiospecimenDataByStudy[] = [];

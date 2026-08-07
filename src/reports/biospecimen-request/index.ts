@@ -1,16 +1,14 @@
-import format from 'date-fns/format';
 import { NextFunction, Request, Response } from 'express';
 import * as fs from 'fs';
 import JSZip from 'jszip';
 
 import EsInstance from '../../ElasticSearchClientInstance';
-import { PROJECT } from '../../env';
 import { reportGenerationErrorHandler } from '../../errors';
 import { normalizeConfigs } from '../../utils/configUtils';
-import { getUTCDate } from '../../utils/dateUtils';
+import { formatCompactStamp, getUTCDate } from '../../utils/dateUtils';
 import ExtendedReportConfigs from '../../utils/extendedReportConfigs';
 import { createSet } from '../../utils/userClient';
-import { BioRequestConfig, ProjectType } from '../types';
+import resolveProjectConfig from '../utils/resolveProjectConfig';
 import configInclude from './configInclude';
 import configKf from './configKf';
 import generateFiles from './generateBiospecimenRequestFiles';
@@ -18,29 +16,18 @@ import generateFiles from './generateBiospecimenRequestFiles';
 const biospecimenRequest = async (req: Request, res: Response, _next: NextFunction): Promise<void> => {
     console.time('biospecimenRequest');
 
-    const { sqon, projectId, biospecimenRequestName } = req.body;
-    const userId = req['kauth']?.grant?.access_token?.content?.sub;
+    const { sqon, biospecimenRequestName } = req.body;
     const accessToken = req.headers.authorization;
 
     const esClient = EsInstance.getInstance();
-    const p = PROJECT.toLowerCase().trim();
-    let bioRequestConfig: BioRequestConfig;
-
-    if (p === ProjectType.include) {
-        bioRequestConfig = configInclude;
-    } else if (p === ProjectType.kidsFirst) {
-        bioRequestConfig = configKf;
-    } else {
-        console.warn('No reportConfig found.');
-    }
+    const bioRequestConfig = resolveProjectConfig(configInclude, configKf);
 
     try {
-        await createSet(userId, accessToken, projectId, sqon, biospecimenRequestName);
+        await createSet(accessToken, sqon, biospecimenRequestName);
 
-        // decorate the configs with default values, values from arranger's project, etc...
+        // decorate the configs with the extended config derived from the index _mapping
         const normalizedConfigs: ExtendedReportConfigs = await normalizeConfigs(
             esClient,
-            projectId,
             bioRequestConfig.reportConfig,
         );
 
@@ -57,12 +44,10 @@ const biospecimenRequest = async (req: Request, res: Response, _next: NextFuncti
         // Generate the files
         await generateFiles(
             esClient,
-            projectId,
             sqon,
             pathFileXlsx,
             pathFileTxt,
             normalizedConfigs,
-            userId,
             accessToken,
             bioRequestConfig,
         );
@@ -92,6 +77,6 @@ const biospecimenRequest = async (req: Request, res: Response, _next: NextFuncti
 };
 
 const generateFileName = (ext: string, nowUTC: Date, prefix: string, suffix: string) =>
-    `${prefix}_biospecimenRequest_${suffix}${format(nowUTC, "yyyyMMdd'T'HHmmss'Z'")}.${ext}`;
+    `${prefix}_biospecimenRequest_${suffix}${formatCompactStamp(nowUTC)}.${ext}`;
 
 export default biospecimenRequest;
