@@ -1,46 +1,86 @@
 import { Client } from '@elastic/elasticsearch';
 
 import { getExtendedFromMapping } from '../../arranger/deriveExtendedFromMapping';
-import { ES_QUERY_MAX_SIZE } from '../../env';
 import { executeSearch } from '../../utils/esUtils';
 import { Sqon } from '../../utils/setsTypes';
+import { resolveSetsInSqon } from '../../utils/sqonUtils';
 import buildEsQueryFromSqon from '../utils/buildEsQuery';
 
-type Bucket = { key: string; count: number };
-type AggregationIdsRequest = {
-    [index: string]: any;
-    query: object;
-    body: {
-        aggregations: {
-            ids: {
-                buckets: Bucket[];
-            };
-        };
+const AGG_NAME = 'values';
+
+// One keyword per bucket, so a big page is cheap; stays under `search.max_buckets` (65536).
+const AGG_PAGE_SIZE = 10_000;
+
+// Guards against a non-advancing `after_key`: 10M values, far above any cohort.
+const MAX_AGG_PAGES = 1_000;
+
+type CompositeKey = Record<string, string | number | boolean | null>;
+type CompositeAggResponse = {
+    body?: {
+        aggregations?: Record<string, { buckets?: { key: CompositeKey }[]; after_key?: CompositeKey }>;
     };
 };
-export const extractFieldAggregationIds = async (
+
+/**
+ * Every distinct non-empty value of `field` among the docs matching `query`, via a
+ * `composite` aggregation paged through `after_key` — exhaustive, unlike `terms` with a
+ * `size` that silently drops whatever falls past the cap (SJIP-1594).
+ *
+ * `field` must be top-level: a composite source under a `nested` mapping needs a nested
+ * wrapper, and without one ES returns zero buckets rather than an error.
+ */
+export const extractAllFieldValues = async (
     query: object,
     field: string,
-    searchExecutor: (q: object) => Promise<AggregationIdsRequest>,
+    searchExecutor: (q: object) => Promise<CompositeAggResponse>,
 ): Promise<string[]> => {
-    const r = await searchExecutor({
-        query,
-        aggs: {
-            ids: {
-                terms: { field: field, size: ES_QUERY_MAX_SIZE },
+    const values = new Set<string>();
+    let after: CompositeKey | undefined;
+
+    for (let page = 0; page < MAX_AGG_PAGES; page += 1) {
+        const r = await searchExecutor({
+            query,
+            aggs: {
+                [AGG_NAME]: {
+                    composite: {
+                        size: AGG_PAGE_SIZE,
+                        sources: [{ [field]: { terms: { field } } }],
+                        ...(after ? { after } : {}),
+                    },
+                },
             },
-        },
-    });
-    const rawIds: string[] = (r.body?.aggregations?.ids?.buckets || []).map((bucket: Bucket) => bucket.key);
-    return [...new Set(rawIds)];
+        });
+
+        const agg = r.body?.aggregations?.[AGG_NAME];
+        const buckets = agg?.buckets || [];
+
+        for (const bucket of buckets) {
+            const value = bucket.key?.[field];
+            // A '' key fed back into a `terms` filter would match every value-less doc;
+            // tested explicitly rather than by truthiness so a real 0/false survives.
+            if (value !== null && value !== undefined && value !== '') {
+                values.add(String(value));
+            }
+        }
+
+        // Stop only on an empty page — the one termination ES guarantees (`after_key` comes
+        // back even on the last page, costing one extra empty request). Don't stop on a
+        // short page instead: that's an assumption, and breaking it drops values silently.
+        after = agg?.after_key;
+        if (!after || buckets.length === 0) {
+            return [...values];
+        }
+    }
+
+    throw new Error(`extractAllFieldValues exceeded ${MAX_AGG_PAGES} pages on "${field}" (non-advancing after_key?)`);
 };
 
-export const mergeParticipantsWithoutDuplicates = (x: string[], y: string[]) => [...new Set([...x, ...y])];
-
-// extract in a more general file when and if needed.
-export const xIsSubsetOfY = (x: string[], y: string[]) => x.every((e: string) => y.includes(e));
-// Expand `sqon` to include every family member: returns a `participant_id in [...]`
-// sqon covering the selected participants plus all their relatives.
+/**
+ * Expand `sqon` to cover every family member: matches the original selection OR anyone
+ * sharing one of its families. Only families are enumerated, never participants, so no
+ * per-request cap can truncate the cohort and the emitted terms list stays clear of
+ * `index.max_terms_count` (65536).
+ */
 const generatePtSqonWithRelativesIfExist = async (
     es: Client,
     sqon: Sqon,
@@ -48,64 +88,31 @@ const generatePtSqonWithRelativesIfExist = async (
     accessToken: string,
 ): Promise<Sqon> => {
     const extendedConfig = await getExtendedFromMapping(es, alias);
-    const query = await buildEsQueryFromSqon(extendedConfig, sqon, accessToken);
+
+    // Resolve set_ids once here: the sqon we return is rebuilt into a query downstream. A
+    // missing sqon becomes a match-all group, since `null` would crash the sqon consumers.
+    const resolved = await resolveSetsInSqon(sqon, accessToken);
+    const baseSqon: Sqon = resolved?.content ? resolved : { op: 'and', content: [] };
+
+    const query = await buildEsQueryFromSqon(extendedConfig, baseSqon, accessToken);
     const searchExecutor = async (q: object) => await executeSearch(es, alias, q);
 
-    const allSelectedParticipantsIds: string[] = await extractFieldAggregationIds(
-        query,
-        'participant_id',
-        searchExecutor,
-    );
-    const allFamiliesIdsOfSelectedParticipants: string[] = await extractFieldAggregationIds(
-        {
-            bool: {
-                must: [
-                    {
-                        terms: {
-                            participant_id: allSelectedParticipantsIds,
-                        },
-                    },
-                ],
-            },
-        },
-        'families_id',
-        searchExecutor,
-    );
-    const allRelativesIds: string[] = await extractFieldAggregationIds(
-        {
-            bool: {
-                must: [
-                    {
-                        terms: {
-                            families_id: allFamiliesIdsOfSelectedParticipants,
-                        },
-                    },
-                ],
-            },
-        },
-        'participant_id',
-        searchExecutor,
-    );
-    const selectedParticipantsIdsPlusRelatives = mergeParticipantsWithoutDuplicates(
-        allSelectedParticipantsIds,
-        allRelativesIds,
-    );
+    const familyIds = await extractAllFieldValues(query, 'families_id', searchExecutor);
 
-    console.assert(
-        selectedParticipantsIdsPlusRelatives.length >= allSelectedParticipantsIds.length &&
-            xIsSubsetOfY(allSelectedParticipantsIds, selectedParticipantsIdsPlusRelatives),
-        `Family Report (sqon enhancer): The participants ids computed must be equal or greater than the selected participants.
-         Moreover, selected participants must a subset of the computed ids.`,
-    );
+    // No families in the selection: it already is the report.
+    if (familyIds.length === 0) {
+        return baseSqon;
+    }
 
     return {
-        op: 'and',
+        op: 'or',
         content: [
+            baseSqon,
             {
                 op: 'in',
                 content: {
-                    field: 'participant_id',
-                    value: selectedParticipantsIdsPlusRelatives,
+                    field: 'families_id',
+                    value: familyIds,
                 },
             },
         ],
